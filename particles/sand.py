@@ -1,4 +1,5 @@
 from particle import Particle
+from particles.water import Water
 import random
 import colorsys
 
@@ -12,8 +13,12 @@ class Sand(Particle):
         self.color = (int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255))
 
     def update(self, sim, pos):
-        if sim.peak_cell(pos, (0, 1)) is None:
+        target_down = sim.peak_cell(pos, (0, 1))
+        if target_down is None:
             sim.move_particle(pos, (0, 1))
+            return
+        if isinstance(target_down, Water):
+            sim.swap_particles(pos, (pos[0], pos[1] + sim.resolution))
             return
         dirs = [1, -1]
         random.shuffle(dirs)

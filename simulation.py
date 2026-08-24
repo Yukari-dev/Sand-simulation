@@ -105,6 +105,15 @@ class Simulation:
         self.cells[gpos[0], gpos[1]] = None
         self.is_dirty = True
     
+    def swap_particles(self, pos1, pos2):
+        g1 = self.convert_coordinate_to_grid(pos1)
+        g2 = self.convert_coordinate_to_grid(pos2)
+
+        self.cells[g1[0], g1[1]], self.cells[g2[0], g2[1]] = (
+            self.cells[g2[0], g2[1]], self.cells[g1[0], g1[1]]
+        )
+        self.is_dirty = True
+    
     def event(self):
         for event in pg.event.get():
             if event.type == pg.QUIT:
