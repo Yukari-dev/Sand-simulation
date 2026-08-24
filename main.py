@@ -1,5 +1,5 @@
 import pygame as pg
-from Simulation import Simulation
+from simulation import Simulation
 
 def main():
     pg.init()
