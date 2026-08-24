@@ -1,6 +1,7 @@
 import pygame as pg
 import numpy as np
 import math
+import random
 
 class Simulation:
     def __init__(self, width, height, resolution):
@@ -31,16 +32,21 @@ class Simulation:
         
         for y in range(self.height - (2 * self.resolution), -1, -self.resolution):
             for x in range (0, self.width, self.resolution):
-                current_cell = self.get_cell((x, y))
+                cell_pos = (x, y)
+                current_cell = self.get_cell(cell_pos)
                 if current_cell == 0:
                     continue
-                bottom_cell = self.peak_cell((x, y), (0, 1))
-                if bottom_cell == 0:
-                    self.place_cell((x, y), 0)
-                    self.place_cell((x, y+self.resolution), 1)
-                
+                if self.peak_cell(cell_pos, (0, 1)) == 0:
+                    self.place_cell(cell_pos, 0)
+                    self.place_cell((cell_pos[0], cell_pos[1]+self.resolution), 1)
+                else:
+                    dirs = [1, -1]
+                    random.shuffle(dirs)
+                    for d in dirs:
+                        if self.peak_cell(cell_pos, (d, 1)) == 0:
+                            self.place_cell(cell_pos, 0)
+                            self.place_cell((cell_pos[0] + (d * self.resolution), cell_pos[1] + self.resolution), 1)
 
-    
     def draw(self):
         if self.is_dirty:
             self.screen.fill("black")
@@ -59,18 +65,25 @@ class Simulation:
         )
 
     def peak_cell(self, pos, dir):
-        pos = self.convert_coordinate_to_grid(pos)
-        p = (pos[0] + dir[0], pos[1] + dir[1])
-        return self.cells[p[0], p[1]]
+        grid_pos = self.convert_coordinate_to_grid(pos)
+        nx = grid_pos[0] + dir[0]
+        ny = grid_pos[1] + dir[1]
+
+        total_width, total_height = self.cells.shape
+
+        if nx < 0 or nx >= total_width or ny < 0 or ny >= total_height:
+            return 1
+        return self.cells[nx, ny]
 
     def get_cell(self, pos):
         p = self.convert_coordinate_to_grid(pos)
         return self.cells[p[0], p[1]]
 
     def place_cell(self, pos, val = 1):
-        pos = self.convert_coordinate_to_grid(pos)
-        self.cells[pos[0], pos[1]] = val
-        self.is_dirty = True
+        p = self.convert_coordinate_to_grid(pos)
+        if 0 <= p[0] < self.cells.shape[0] and 0 <= p[1] < self.cells.shape[1]:
+            self.cells[p[0], p[1]] = val
+            self.is_dirty = True
     
     def event(self):
         for event in pg.event.get():
