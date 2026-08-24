@@ -4,7 +4,7 @@ from simulation import Simulation
 def main():
     pg.init()
 
-    simulation = Simulation(800, 600, 25)
+    simulation = Simulation(800, 600, 10)
     simulation.loop()
     pg.quit()
 

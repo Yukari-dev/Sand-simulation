@@ -1,6 +1,6 @@
 import pygame as pg
 import numpy as np
-from particles import sand, stone, water
+from particles import sand, stone, water, wood, fire, smoke
 import math
 import random
 
@@ -32,10 +32,16 @@ class Simulation:
     def update(self):
         self.global_mouse_pos = pg.mouse.get_pos()
         for y in range(self.height - (2 * self.resolution), -1, -self.resolution):
-            for x in range (0, self.width, self.resolution):
-                current_cell = self.get_cell((x, y))
-                if current_cell is not None:
-                    current_cell.update(self, (x, y))
+            for x in range(0, self.width, self.resolution):
+                cell = self.get_cell((x, y))
+                if cell is not None and getattr(cell, "is_solid", True):
+                    cell.update(self, (x, y))
+
+        for y in range(0, self.height, self.resolution):
+            for x in range(0, self.width, self.resolution):
+                cell = self.get_cell((x, y))
+                if cell is not None and not getattr(cell, "is_solid", True):
+                    cell.update(self, (x, y))
 
 
     def draw(self):
@@ -78,7 +84,7 @@ class Simulation:
             return False
         return self.cells[nx, ny] is None
 
-    def peak_cell(self, pos, dir):
+    def peek_cell(self, pos, dir):
         if self.is_inside(pos, dir) == False:
             return None
         gpos = self.convert_coordinate_to_grid(pos)
@@ -132,6 +138,10 @@ class Simulation:
                     self.current_particle = stone.Stone
                 elif event.key == pg.K_4:
                     self.current_particle = water.Water
+                elif event.key == pg.K_5:
+                    self.current_particle = wood.Wood
+                elif event.key == pg.K_6:
+                    self.current_particle = fire.Fire
         if pg.mouse.get_pressed()[0]:
             self.place_cell(self.global_mouse_pos, self.current_particle)
         if pg.mouse.get_pressed()[1]:

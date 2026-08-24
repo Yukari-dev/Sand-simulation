@@ -13,7 +13,7 @@ class Sand(Particle):
         self.color = (int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255))
 
     def update(self, sim, pos):
-        target_down = sim.peak_cell(pos, (0, 1))
+        target_down = sim.peek_cell(pos, (0, 1))
         if target_down is None:
             sim.move_particle(pos, (0, 1))
             return
@@ -23,6 +23,6 @@ class Sand(Particle):
         dirs = [1, -1]
         random.shuffle(dirs)
         for d in dirs:
-            if sim.peak_cell(pos, (d, 1)) is None:
+            if sim.peek_cell(pos, (d, 1)) is None:
                 sim.move_particle(pos, (d, 1))
                 return
