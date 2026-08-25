@@ -1,8 +1,9 @@
 import pygame as pg
 import numpy as np
-from particles import sand, stone, water, wood, fire, smoke
+from particles.elements import Sand, Stone, Water, Wood, Fire
 import math
 import random
+
 
 class Simulation:
     def __init__(self, width, height, resolution):
@@ -14,9 +15,9 @@ class Simulation:
         self.running = True
         self.dt = 0
         self.is_dirty = False
-        self.current_particle = sand.Sand
+        self.current_particle = Sand
         self.clear()
-    
+
     def loop(self):
         self.draw_grid()
         while self.running:
@@ -31,18 +32,23 @@ class Simulation:
 
     def update(self):
         self.global_mouse_pos = pg.mouse.get_pos()
-        for y in range(self.height - (2 * self.resolution), -1, -self.resolution):
-            for x in range(0, self.width, self.resolution):
-                cell = self.get_cell((x, y))
-                if cell is not None and getattr(cell, "is_solid", True):
-                    cell.update(self, (x, y))
+        width, height = self.cells.shape
+        for x in range(width):
+            for y in range(height):
+                cell = self.cells[x, y]
+                if cell is not None:
+                    cell.updated = False
 
-        for y in range(0, self.height, self.resolution):
-            for x in range(0, self.width, self.resolution):
-                cell = self.get_cell((x, y))
-                if cell is not None and not getattr(cell, "is_solid", True):
-                    cell.update(self, (x, y))
+        for y in range(self.height - (2 * self.resolution),
+                       -1, -self.resolution):
+            x_coord = list(range(0, self.width, self.resolution))
+            random.shuffle(x_coord)
 
+            for x in x_coord:
+                cell = self.get_cell((x, y))
+                if cell is not None and not cell.updated:
+                    cell.updated = True
+                    cell.update(self, (x, y))
 
     def draw(self):
         if self.is_dirty:
@@ -55,13 +61,13 @@ class Simulation:
         size = self.convert_coordinate_to_grid((self.width, self.height))
         self.cells = np.full(size, None)
         self.is_dirty = True
-        
+
     def get_mouse_cell_pos(self):
         return (
             math.floor(self.global_mouse_pos[0] / self.resolution),
             math.floor(self.global_mouse_pos[1] / self.resolution)
         )
-        
+
     def is_inside(self, pos, dir):
         grid_pos = self.convert_coordinate_to_grid(pos)
         nx = grid_pos[0] + dir[0]
@@ -85,7 +91,7 @@ class Simulation:
         return self.cells[nx, ny] is None
 
     def peek_cell(self, pos, dir):
-        if self.is_inside(pos, dir) == False:
+        if not self.is_inside(pos, dir):
             return None
         gpos = self.convert_coordinate_to_grid(pos)
         nx, ny = gpos[0] + dir[0], gpos[1] + dir[1]
@@ -95,14 +101,14 @@ class Simulation:
         p = self.convert_coordinate_to_grid(pos)
         return self.cells[p[0], p[1]]
 
-    def place_cell(self, pos, particle = None):
+    def place_cell(self, pos, particle):
         p = self.convert_coordinate_to_grid(pos)
         if 0 <= p[0] < self.cells.shape[0] and 0 <= p[1] < self.cells.shape[1]:
             self.cells[p[0], p[1]] = particle() if particle else None
             self.is_dirty = True
 
     def move_particle(self, pos, dir):
-        if self.is_inside(pos, dir) == False:
+        if not self.is_inside(pos, dir):
             return
         gpos = self.convert_coordinate_to_grid(pos)
         nx, ny = gpos[0] + dir[0], gpos[1] + dir[1]
@@ -110,7 +116,7 @@ class Simulation:
         self.cells[nx, ny] = self.cells[gpos[0], gpos[1]]
         self.cells[gpos[0], gpos[1]] = None
         self.is_dirty = True
-    
+
     def swap_particles(self, pos1, pos2):
         g1 = self.convert_coordinate_to_grid(pos1)
         g2 = self.convert_coordinate_to_grid(pos2)
@@ -119,7 +125,7 @@ class Simulation:
             self.cells[g2[0], g2[1]], self.cells[g1[0], g1[1]]
         )
         self.is_dirty = True
-    
+
     def event(self):
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -133,22 +139,25 @@ class Simulation:
                 if event.key == pg.K_1:
                     self.current_particle = None
                 if event.key == pg.K_2:
-                    self.current_particle = sand.Sand
+                    self.current_particle = Sand
                 elif event.key == pg.K_3:
-                    self.current_particle = stone.Stone
+                    self.current_particle = Stone
                 elif event.key == pg.K_4:
-                    self.current_particle = water.Water
+                    self.current_particle = Water
                 elif event.key == pg.K_5:
-                    self.current_particle = wood.Wood
+                    self.current_particle = Wood
                 elif event.key == pg.K_6:
-                    self.current_particle = fire.Fire
+                    self.current_particle = Fire
         if pg.mouse.get_pressed()[0]:
             self.place_cell(self.global_mouse_pos, self.current_particle)
         if pg.mouse.get_pressed()[1]:
             self.place_cell(self.global_mouse_pos, None)
-    
+
     def convert_coordinate_to_grid(self, pos):
-        return (math.floor(pos[0] / self.resolution), math.floor(pos[1] / self.resolution))
+        return (
+            math.floor(pos[0] / self.resolution),
+            math.floor(pos[1] / self.resolution)
+        )
 
     def draw_grid(self):
         for x in range(0, self.width, self.resolution):
@@ -159,7 +168,9 @@ class Simulation:
     def draw_cells(self):
         for y in range(0, self.height, self.resolution):
             for x in range(0, self.width, self.resolution):
-                current_cell = self.cells[self.convert_coordinate_to_grid((x, y))]
+                current_cell = self.cells[
+                    self.convert_coordinate_to_grid((x, y))
+                ]
                 if current_cell is not None:
                     rect = pg.Rect(x, y, self.resolution, self.resolution)
                     pg.draw.rect(self.screen, current_cell.color, rect)
