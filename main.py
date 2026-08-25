@@ -3,8 +3,7 @@ from simulation import Simulation
 
 def main():
     pg.init()
-
-    simulation = Simulation(800, 600, 10)
+    simulation = Simulation(1200, 720, 10)
     simulation.loop()
     pg.quit()
 

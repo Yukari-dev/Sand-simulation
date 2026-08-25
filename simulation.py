@@ -16,6 +16,7 @@ class Simulation:
         self.dt = 0
         self.is_dirty = False
         self.current_particle = Sand
+        self.brush_size = 1
         self.clear()
 
     def loop(self):
@@ -53,9 +54,10 @@ class Simulation:
     def draw(self):
         if self.is_dirty:
             self.screen.fill("black")
-            self.draw_grid()
+            # self.draw_grid()
             self.draw_cells()
             self.is_dirty = False
+        self.draw_hud()
 
     def clear(self):
         size = self.convert_coordinate_to_grid((self.width, self.height))
@@ -107,6 +109,16 @@ class Simulation:
             self.cells[p[0], p[1]] = particle() if particle else None
             self.is_dirty = True
 
+    def place_brush(self, pos, element):
+        radius = getattr(self, "brush_size", 1) - 1
+        gx, gy = self.convert_coordinate_to_grid(pos)
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                if dx*dx+dy*dy <= radius*radius + 0.5:
+                    px = (gx + dx) * self.resolution
+                    py = (gy + dy) * self.resolution
+                    self.place_cell((px, py), element)
+
     def move_particle(self, pos, dir):
         if not self.is_inside(pos, dir):
             return
@@ -136,22 +148,19 @@ class Simulation:
                 if event.key == pg.K_r:
                     self.clear()
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_1:
-                    self.current_particle = None
-                if event.key == pg.K_2:
-                    self.current_particle = Sand
-                elif event.key == pg.K_3:
-                    self.current_particle = Stone
-                elif event.key == pg.K_4:
-                    self.current_particle = Water
-                elif event.key == pg.K_5:
-                    self.current_particle = Wood
-                elif event.key == pg.K_6:
-                    self.current_particle = Fire
+                if event.key == pg.K_1:   self.current_particle = None
+                if event.key == pg.K_2:   self.current_particle = Sand
+                elif event.key == pg.K_3: self.current_particle = Stone
+                elif event.key == pg.K_4: self.current_particle = Water
+                elif event.key == pg.K_5: self.current_particle = Wood
+                elif event.key == pg.K_6:self.current_particle = Fire
+            if event.type == pg.MOUSEWHEEL:
+                if not hasattr(self, "brush_size"): self.brush_size = 1
+                self.brush_size = max(1, min(8, self.brush_size + event.y))
         if pg.mouse.get_pressed()[0]:
-            self.place_cell(self.global_mouse_pos, self.current_particle)
-        if pg.mouse.get_pressed()[1]:
-            self.place_cell(self.global_mouse_pos, None)
+            self.place_brush(self.global_mouse_pos, self.current_particle)
+        if pg.mouse.get_pressed()[2]:
+            self.place_brush(self.global_mouse_pos, None)
 
     def convert_coordinate_to_grid(self, pos):
         return (
@@ -174,3 +183,20 @@ class Simulation:
                 if current_cell is not None:
                     rect = pg.Rect(x, y, self.resolution, self.resolution)
                     pg.draw.rect(self.screen, current_cell.color, rect)
+
+    def draw_hud(self):
+        if not hasattr(self, 'font'):
+            pg.font.init()
+            self.font = pg.font.SysFont("jetbrainsmononerdfontmono", 14, bold=True)
+        active_count = np.count_nonzero(self.cells != None)
+        fps = int(self.clock.get_fps())
+        elem_name = self.current_particle.__name__ if self.current_particle else "Eraser"
+        brush_size = self.brush_size
+
+        hud_str = f"FPS: {fps} | Particles: {active_count} | Element: {elem_name} | Brush: {brush_size}"
+        surface = self.font.render(hud_str, True, (255, 255, 255))
+
+        bg_rect = pg.Rect(10, 10, surface.get_width() + 16, 26)
+        pg.draw.rect(self.screen, (20, 20, 20), bg_rect)
+        pg.draw.rect(self.screen, (70, 70, 70), bg_rect, 1)
+        self.screen.blit(surface, (18, 15))
